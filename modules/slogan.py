@@ -16,6 +16,8 @@ def sloganize(word):
     return bytes
 
 def slogan(phenny, input): 
+    if input.group(2) is None:
+        return # deal with null inputs
     word = input.group(2)
     slogan = sloganize(word)
 
