@@ -7,7 +7,7 @@ Licensed under the Eiffel Forum License 2.
 http://inamidst.com/phenny/
 """
 
-import re, urllib
+import re, urllib, gzip, StringIO
 import web
 
 wikiuri = 'http://%s.wikipedia.org/wiki/%s'
@@ -24,7 +24,7 @@ r_redirect = re.compile(
 
 abbrs = ['etc', 'ca', 'cf', 'Co', 'Ltd', 'Inc', 'Mt', 'Mr', 'Mrs', 
          'Dr', 'Ms', 'Rev', 'Fr', 'St', 'Sgt', 'pron', 'approx', 'lit', 
-         'syn', 'transl', 'sess', 'fl', 'Op', 'Dec'] \
+         'syn', 'transl', 'sess', 'fl', 'Op', 'Dec', 'Brig', 'Gen'] \
    + list('ABCDEFGHIJKLMNOPQRSTUVWXYZ') \
    + list('abcdefghijklmnopqrstuvwxyz')
 t_sentence = r'^.{5,}?(?<!\b%s)(?:\.(?=[\[ ][A-Z0-9]|\Z)|\Z)'
@@ -53,7 +53,7 @@ def search(term):
    else: term = term.decode('utf-8')
 
    term = term.replace('_', ' ')
-   try: uri = search.result('site:en.wikipedia.org %s' % term)
+   try: uri = search.google_search('site:en.wikipedia.org %s' % term)
    except IndexError: return term
    if uri: 
       return uri[len('http://en.wikipedia.org/wiki/'):]
@@ -69,6 +69,15 @@ def wikipedia(term, language='en', last=False):
       u = wikiuri % (language, q)
       bytes = web.get(u)
    else: bytes = web.get(wikiuri % (language, term))
+
+   if bytes.startswith('\x1f\x8b\x08\x00\x00\x00\x00\x00'): 
+      f = StringIO.StringIO(bytes)
+      f.seek(0)
+      gzip_file = gzip.GzipFile(fileobj=f)
+      bytes = gzip_file.read()
+      gzip_file.close()
+      f.close()
+
    bytes = r_tr.sub('', bytes)
 
    if not last: 
